@@ -1,0 +1,18 @@
+.root {
+    -fx-background-color: #121212;
+    -fx-text-fill: #eeeeee;
+}
+
+.list-view {
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #eeeeee;
+}
+
+.button {
+    -fx-background-color: #333333;
+    -fx-text-fill: #eeeeee;
+}
+
+.button:hover {
+    -fx-background-color: #555555;
+}
