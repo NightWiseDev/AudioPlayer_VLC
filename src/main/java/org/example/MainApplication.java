@@ -1,18 +1,22 @@
 package org.example;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.example.platforms.SoundCloudDownloader;
 import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +24,7 @@ public class MainApplication extends Application {
 
     private MusicManager musicManager;
     private AudioPlayer audioPlayer;
+    private SoundCloudDownloader soundCloudDownloader;
 
     public static void main(String[] args) {
         launch(args);
@@ -51,6 +56,7 @@ public class MainApplication extends Application {
 
         initManagers(musicFiles,playListView);
         initAudioPlayer(mediaPlayerFactory,mediaPlayer);
+        soundCloudDownloader = new SoundCloudDownloader();
 
         addButton.setOnAction(event -> handleAddButton(stage,musicFiles, playListView));
 
@@ -72,8 +78,9 @@ public class MainApplication extends Application {
                 mediaPlayer.controls().stop();
             }
         });
+        addMusicInPlatforms.setOnAction(event -> handleAddMusicInPlatforms(stage));
 
-        HBox controls = new HBox(10, playButton, pauseButton, stopButton);
+        HBox controls = new HBox(10, playButton, pauseButton, stopButton,addMusicInPlatforms);
         controls.setPadding(new Insets(10));
 
         VBox root = new VBox(10, addButton, playListView, controls);
@@ -103,6 +110,24 @@ public class MainApplication extends Application {
             }
         }
         musicManager.saveSounds();
+    }
+    private void handleAddMusicInPlatforms(Stage stage) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Добавить трек с soundcloud");
+        dialog.setHeaderText("Введите ссылку на трек");
+        dialog.setContentText("URL:");
+
+        dialog.showAndWait().ifPresent(url -> {
+               String outputDir = "src/main/resources/music";
+                try {
+                    soundCloudDownloader.download(url,outputDir);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                Platform.runLater(() -> {
+                    musicManager.loadSounds();
+            });
+        });
     }
     private void initManagers(List<File> musicFiles, ListView<String> listView) {
         musicManager = new MusicManager(musicFiles, listView);

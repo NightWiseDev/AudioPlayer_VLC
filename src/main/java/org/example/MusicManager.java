@@ -26,6 +26,8 @@ public class MusicManager {
     private final ListView<String> playListView;
 
     public void loadSounds() {
+        musicFiles.clear();
+        playListView.getItems().clear();
         try {
             URL musicUrl = getClass().getResource("/music");
             File folder;
