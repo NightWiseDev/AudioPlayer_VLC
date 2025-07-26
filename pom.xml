@@ -42,7 +42,6 @@
             <artifactId>vlcj</artifactId>
             <version>4.7.1</version>
         </dependency>
-
     </dependencies>
 
     <build>

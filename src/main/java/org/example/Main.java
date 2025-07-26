@@ -13,6 +13,11 @@ import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
 
 import java.io.File;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +38,7 @@ public class Main extends Application {
         Button playButton = new Button("▶ Воспроизвести");
         Button pauseButton = new Button("⏸ Пауза");
         Button stopButton = new Button("⏹ Остановить");
+        Button addMusicInPlatforms = new Button("Добавить музыку из SoundCloud");
 
         // Инициализация VLCJ
         mediaPlayerFactory = new MediaPlayerFactory();
@@ -67,10 +73,35 @@ public class Main extends Application {
 
         Scene scene = new Scene(root, 400, 500);
 
-         scene.getStylesheets().add(getClass().getResource("/dark-theme.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/dark-theme.css").toExternalForm());
 
         stage.setScene(scene);
         stage.show();
+
+        loadSounds();
+    }
+
+    private void loadSounds() {
+        try {
+            URL musicUrl = getClass().getResource("/music");
+            File folder;
+            if (musicUrl == null) {
+                folder = new File(musicUrl.toURI());
+            } else {
+                folder = new File("src/main/resources/music");
+            }
+            File[] files = folder.listFiles();
+            if (folder.exists() && folder.isDirectory()) {
+                if (files != null) {
+                    for (File f : files) {
+                        musicFiles.add(f);
+                        playListView.getItems().add(f.getName());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Возникла ошибка: " + e.getMessage());
+        }
     }
 
     private void handleAddButton(Stage stage) {
@@ -87,7 +118,25 @@ public class Main extends Application {
                 playListView.getItems().add(file.getName());
             }
         }
+        saveSounds();
     }
+
+    private void saveSounds() {
+        try {
+            Path destinationDir = Paths.get("src/main/resources/music");
+            Files.createDirectories(destinationDir);
+
+            for (File file : musicFiles) {
+                Path source = file.toPath();
+                Path destination = destinationDir.resolve(file.getName());
+
+                Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            System.out.println("Возникла ошибка: " + e.getMessage());
+        }
+    }
+
 
     private void playMusic(int index) {
         if (mediaPlayer != null && !musicFiles.isEmpty()) {
