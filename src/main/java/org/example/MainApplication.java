@@ -13,26 +13,31 @@ import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
 
 import java.io.File;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Main extends Application {
+public class MainApplication extends Application {
 
-    private List<File> musicFiles = new ArrayList<>();
-    private MediaPlayerFactory mediaPlayerFactory;
-    private MediaPlayer mediaPlayer;
-    private ListView<String> playListView;
+    private MusicManager musicManager;
+    private AudioPlayer audioPlayer;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     @Override
     public void start(Stage stage) {
+
+        List<File> musicFiles;
+        ListView<String> playListView;
+        MediaPlayerFactory mediaPlayerFactory;
+        MediaPlayer mediaPlayer;
+
+
         stage.setTitle("Аудио-плеер на VLCJ");
 
         playListView = new ListView<>();
+        musicFiles = new ArrayList<>();
 
         Button addButton = new Button("Добавить музыку");
         Button playButton = new Button("▶ Воспроизвести");
@@ -44,12 +49,15 @@ public class Main extends Application {
         mediaPlayerFactory = new MediaPlayerFactory();
         mediaPlayer = mediaPlayerFactory.mediaPlayers().newMediaPlayer();
 
-        addButton.setOnAction(event -> handleAddButton(stage));
+        initManagers(musicFiles,playListView);
+        initAudioPlayer(mediaPlayerFactory,mediaPlayer);
+
+        addButton.setOnAction(event -> handleAddButton(stage,musicFiles, playListView));
 
         playButton.setOnAction(event -> {
             int index = playListView.getSelectionModel().getSelectedIndex();
             if (index >= 0) {
-                playMusic(index);
+                audioPlayer.playMusic(index);
             }
         });
 
@@ -78,33 +86,9 @@ public class Main extends Application {
         stage.setScene(scene);
         stage.show();
 
-        loadSounds();
+        musicManager.loadSounds();
     }
-
-    private void loadSounds() {
-        try {
-            URL musicUrl = getClass().getResource("/music");
-            File folder;
-            if (musicUrl == null) {
-                folder = new File(musicUrl.toURI());
-            } else {
-                folder = new File("src/main/resources/music");
-            }
-            File[] files = folder.listFiles();
-            if (folder.exists() && folder.isDirectory()) {
-                if (files != null) {
-                    for (File f : files) {
-                        musicFiles.add(f);
-                        playListView.getItems().add(f.getName());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Возникла ошибка: " + e.getMessage());
-        }
-    }
-
-    private void handleAddButton(Stage stage) {
+    private void handleAddButton(Stage stage,List<File> musicFiles,ListView<String> playListView) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Выберите песню");
         // Можно расширить список форматов
@@ -118,51 +102,12 @@ public class Main extends Application {
                 playListView.getItems().add(file.getName());
             }
         }
-        saveSounds();
+        musicManager.saveSounds();
     }
-
-    private void saveSounds() {
-        try {
-            Path destinationDir = Paths.get("src/main/resources/music");
-            Files.createDirectories(destinationDir);
-
-            for (File file : musicFiles) {
-                Path source = file.toPath();
-                Path destination = destinationDir.resolve(file.getName());
-
-                Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (Exception e) {
-            System.out.println("Возникла ошибка: " + e.getMessage());
-        }
+    private void initManagers(List<File> musicFiles, ListView<String> listView) {
+        musicManager = new MusicManager(musicFiles, listView);
     }
-
-
-    private void playMusic(int index) {
-        if (mediaPlayer != null && !musicFiles.isEmpty()) {
-            String mediaPath = musicFiles.get(index).getAbsolutePath();
-            System.out.println("Playing media: " + mediaPath);
-
-            mediaPlayer.controls().stop();
-
-            mediaPlayer.media().play(mediaPath);
-        }
-    }
-
-    @Override
-    public void stop() throws Exception {
-        // Освобождаем ресурсы VLCJ при закрытии
-        if (mediaPlayer != null) {
-            mediaPlayer.controls().stop();
-            mediaPlayer.release();
-        }
-        if (mediaPlayerFactory != null) {
-            mediaPlayerFactory.release();
-        }
-        super.stop();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
+    private void initAudioPlayer(MediaPlayerFactory mediaPlayerFactory, MediaPlayer mediaPlayer) {
+        audioPlayer = new AudioPlayer(mediaPlayerFactory,mediaPlayer, musicManager);
     }
 }
