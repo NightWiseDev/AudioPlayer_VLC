@@ -9,7 +9,7 @@ import com.google.gson.*;
 
 public class SoundCloudDownloader {
 
-    private final String clientId = "Ищите сами ахуели что ли?";
+    private final String clientId = "CCbVVppXByCBrh4OcGmbrgyYhni0SgvL";
     private final HttpClient httpClient = HttpClient.newHttpClient();
     public boolean isValidUrl(String url) {
         return url != null && url.matches("^https?://(www\\.)?soundcloud\\.com/[^/]+(/[^/?#]+)?");
