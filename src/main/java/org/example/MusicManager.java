@@ -1,20 +1,17 @@
 package org.example;
 
-import javafx.application.Application;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
-import uk.co.caprica.vlcj.player.base.MediaPlayer;
+import org.example.music.MusicItem;
 
 import java.io.File;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -23,26 +20,21 @@ import java.util.List;
 public class MusicManager {
 
     private final List<File> musicFiles;
-    private final ListView<String> playListView;
+    private final ListView<MusicItem> playListView;
 
     public void loadSounds() {
         musicFiles.clear();
         playListView.getItems().clear();
         try {
-            URL musicUrl = getClass().getResource("/music");
-            File folder;
-            if (musicUrl == null) {
-                folder = new File(musicUrl.toURI());
-            } else {
-                folder = new File("src/main/resources/music");
-            }
-            File[] files = folder.listFiles();
-            if (folder.exists() && folder.isDirectory()) {
-                if (files != null) {
-                    for (File f : files) {
-                        musicFiles.add(f);
-                        playListView.getItems().add(f.getName());
-                    }
+            String userHome = System.getProperty("user.home");
+            Path musicPath = Paths.get(userHome, ".nxAudioPlayer", "music");
+            Files.createDirectories(musicPath); // если нет — создаст
+
+            File[] files = musicPath.toFile().listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    musicFiles.add(f);
+                    playListView.getItems().add(new MusicItem(f,new Label(f.getName()), new Label("")));
                 }
             }
         } catch (Exception e) {
@@ -51,7 +43,8 @@ public class MusicManager {
     }
     public void saveSounds() {
         try {
-            Path destinationDir = Paths.get("src/main/resources/music");
+            String userHome = System.getProperty("user.home");
+            Path destinationDir = Paths.get(userHome, ".nxAudioPlayer", "music");
             Files.createDirectories(destinationDir);
 
             for (File file : musicFiles) {

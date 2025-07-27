@@ -1,22 +1,31 @@
 package org.example;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
+import lombok.Getter;
+import org.example.music.MusicCeil;
+import org.example.music.MusicItem;
 import org.example.platforms.SoundCloudDownloader;
+import org.example.threads.DownloaderThread;
 import uk.co.caprica.vlcj.factory.MediaPlayerFactory;
 import uk.co.caprica.vlcj.player.base.MediaPlayer;
 
 import java.io.File;
-import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +35,11 @@ public class MainApplication extends Application {
     private AudioPlayer audioPlayer;
     private SoundCloudDownloader soundCloudDownloader;
 
+    @Getter
+    private final Timer timer = new Timer();
+
+    private int currentIndex = -1;
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -34,7 +48,7 @@ public class MainApplication extends Application {
     public void start(Stage stage) {
 
         List<File> musicFiles;
-        ListView<String> playListView;
+        ListView<MusicItem> playListView;
         MediaPlayerFactory mediaPlayerFactory;
         MediaPlayer mediaPlayer;
 
@@ -42,6 +56,7 @@ public class MainApplication extends Application {
         stage.setTitle("Аудио-плеер на VLCJ");
 
         playListView = new ListView<>();
+        playListView.setCellFactory(list -> new MusicCeil());
         musicFiles = new ArrayList<>();
 
         Button addButton = new Button("Добавить музыку");
@@ -63,7 +78,11 @@ public class MainApplication extends Application {
         playButton.setOnAction(event -> {
             int index = playListView.getSelectionModel().getSelectedIndex();
             if (index >= 0) {
+                currentIndex = index;
+
                 audioPlayer.playMusic(index);
+
+                timer.start(currentIndex, mediaPlayer, playListView);
             }
         });
 
@@ -95,7 +114,7 @@ public class MainApplication extends Application {
 
         musicManager.loadSounds();
     }
-    private void handleAddButton(Stage stage,List<File> musicFiles,ListView<String> playListView) {
+    private void handleAddButton(Stage stage,List<File> musicFiles,ListView<MusicItem> playListView) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Выберите песню");
         // Можно расширить список форматов
@@ -106,7 +125,7 @@ public class MainApplication extends Application {
         if (selectedFiles != null) {
             musicFiles.addAll(selectedFiles);
             for (File file : selectedFiles) {
-                playListView.getItems().add(file.getName());
+                playListView.getItems().add(new MusicItem(file,new Label(file.getName()),new Label("")));
             }
         }
         musicManager.saveSounds();
@@ -117,22 +136,17 @@ public class MainApplication extends Application {
         dialog.setHeaderText("Введите ссылку на трек");
         dialog.setContentText("URL:");
 
-        dialog.showAndWait().ifPresent(url -> {
-               String outputDir = "src/main/resources/music";
-                try {
-                    soundCloudDownloader.download(url,outputDir);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                Platform.runLater(() -> {
-                    musicManager.loadSounds();
-            });
-        });
+        dialog.showAndWait().ifPresent(this::accept);
     }
-    private void initManagers(List<File> musicFiles, ListView<String> listView) {
+    private void initManagers(List<File> musicFiles, ListView<MusicItem> listView) {
         musicManager = new MusicManager(musicFiles, listView);
     }
     private void initAudioPlayer(MediaPlayerFactory mediaPlayerFactory, MediaPlayer mediaPlayer) {
         audioPlayer = new AudioPlayer(mediaPlayerFactory,mediaPlayer, musicManager);
+    }
+
+    private void accept(String url) {
+        DownloaderThread downloaderThread = new DownloaderThread(soundCloudDownloader, musicManager, url);
+        downloaderThread.start();
     }
 }
